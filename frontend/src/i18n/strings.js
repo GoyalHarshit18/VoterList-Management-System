@@ -75,6 +75,7 @@ export const STRINGS = {
         disability: "Disability (if any)",
         declaration: "I hereby declare that the information provided is true to the best of my knowledge.",
         submit: "Submit Verification",
+        passportPhoto: "Passport Photo",
         /* HEADER */
         siteTitle: "Unified Voter System",
         siteSubtitle: "Election Commission of India",
@@ -188,6 +189,7 @@ export const STRINGS = {
         disability: "दिव्यांगता (यदि कोई हो)",
         declaration: "मैं एतद्द्वारा घोषणा करता हूं कि प्रदान की गई जानकारी मेरे सर्वोत्तम ज्ञान के अनुसार सत्य है।",
         submit: "सत्यापन जमा करें",
+        passportPhoto: "पासपोर्ट फोटो",
         /* HEADER */
         siteTitle: "एकीकृत मतदाता प्रणाली",
         siteSubtitle: "भारत निर्वाचन आयोग",

@@ -1,10 +1,92 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "../i18n/LanguageContext";
 import { useAuth } from "../auth/AuthContext";
 import { STRINGS } from "../i18n/strings";
 
-const API_URL = "http://localhost:5000/api";
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = `${BASE_URL}/api`;
+
+const CaptchaCanvas = ({ text }) => {
+    const canvasRef = useRef(null);
+
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        const width = 140;
+        const height = 50;
+        canvas.width = width;
+        canvas.height = height;
+
+        // Clear and Background
+        ctx.clearRect(0, 0, width, height);
+        ctx.fillStyle = '#f8f9fa';
+        ctx.fillRect(0, 0, width, height);
+
+        // Add Noise Lines
+        for (let i = 0; i < 7; i++) {
+            ctx.beginPath();
+            ctx.moveTo(Math.random() * width, Math.random() * height);
+            ctx.lineTo(Math.random() * width, Math.random() * height);
+            ctx.strokeStyle = `rgba(100, 100, 100, ${0.2 + Math.random() * 0.3})`;
+            ctx.lineWidth = 1 + Math.random();
+            ctx.stroke();
+        }
+
+        // Add Noise Dots
+        for (let i = 0; i < 30; i++) {
+            ctx.beginPath();
+            ctx.arc(Math.random() * width, Math.random() * height, 1, 0, 2 * Math.PI);
+            ctx.fillStyle = `rgba(100, 100, 100, ${0.2 + Math.random() * 0.3})`;
+            ctx.fill();
+        }
+
+        // Draw Text
+        const chars = text.split('');
+        const fontSize = 28;
+        ctx.font = `bold ${fontSize}px "Courier New", monospace`;
+        ctx.textBaseline = 'middle';
+
+        const totalWidth = width - 40; // padding
+        const startX = 20;
+
+        chars.forEach((char, index) => {
+            ctx.save();
+            // Calculate position with some jitter
+            const x = startX + (index * (totalWidth / chars.length)) + (Math.random() * 5);
+            const y = height / 2 + (Math.random() * 10 - 5);
+
+            // Translate to position
+            ctx.translate(x, y);
+
+            // Random Rotation (-20 to 20 degrees)
+            const angle = (Math.random() - 0.5) * 0.7;
+            ctx.rotate(angle);
+
+            ctx.fillStyle = '#333';
+            ctx.fillText(char, 0, 0);
+
+            ctx.restore();
+        });
+
+    }, [text]);
+
+    // Canvas with blur for "slurry" effect
+    return (
+        <canvas
+            ref={canvasRef}
+            style={{
+                filter: 'blur(0.8px)',
+                border: '1px solid #ddd',
+                borderRadius: '8px',
+                cursor: 'pointer'
+            }}
+            title="Captcha"
+        />
+    );
+};
 
 export default function BLOLogin() {
     const { lang } = useLanguage();
@@ -156,7 +238,9 @@ export default function BLOLogin() {
 
                         <div role="group" aria-label="Captcha Verification">
                             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                <strong>{captcha}</strong>
+                                <div onClick={generateCaptcha}>
+                                    <CaptchaCanvas text={captcha} />
+                                </div>
                                 <button
                                     type="button"
                                     onClick={generateCaptcha}
