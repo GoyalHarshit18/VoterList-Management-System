@@ -1,3 +1,5 @@
+# Deployed Link: https://hack4delhi-frontend-7xm4.onrender.com
+
 # 🗳️ Voter List Management System
 
 A secure, intelligent, and scalable **Voter Identification & De-duplication System** designed to prevent duplicate voter registrations while ensuring transparency, privacy, and user trust. The system combines **rule-based validation** with **machine learning–driven similarity detection** to accurately identify duplicates before adding voters to the final electoral database.
