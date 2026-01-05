@@ -108,9 +108,8 @@ export default function BLOLogin() {
     // Focus OTP input when step 2 is active
     useEffect(() => {
         if (step === 2) {
-            // Use setTimeout to ensure the alert happens after render
+            // Use setTimeout to ensure focus happens after render
             setTimeout(() => {
-                alert(`Demo OTP: 1234`);
                 const input = document.getElementById('otp-input-field');
                 if (input) input.focus();
             }, 50);

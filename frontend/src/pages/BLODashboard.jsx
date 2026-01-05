@@ -17,6 +17,7 @@ export default function BLODashboard() {
 
     const [stats, setStats] = useState({ verified: 0, pending: 0, issues: 0 });
     const [loading, setLoading] = useState(true);
+    const [lastSubmission, setLastSubmission] = useState(null);
 
     const [formData, setFormData] = useState({
         nameEnglish: '',
@@ -29,7 +30,8 @@ export default function BLODashboard() {
         district: '',
         state: '',
         pin: '',
-        disability: ''
+        disability: '',
+        photo: null
     });
 
     const handleInputChange = (e) => {
@@ -38,6 +40,20 @@ export default function BLODashboard() {
             ...prev,
             [id]: value
         }));
+    };
+
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setFormData(prev => ({
+                    ...prev,
+                    photo: reader.result
+                }));
+            };
+            reader.readAsDataURL(file);
+        }
     };
 
     useEffect(() => {
@@ -76,9 +92,16 @@ export default function BLODashboard() {
             });
 
             if (res.ok) {
-                alert("Form submitted successfully!");
+                const data = await res.json();
+                setLastSubmission(data);
+
                 // Refresh stats locally for demo
-                setStats(prev => ({ ...prev, pending: prev.pending + 1 }));
+                setStats(prev => ({
+                    ...prev,
+                    pending: data.duplicationScore > 70 ? prev.pending : prev.pending + 1,
+                    issues: data.duplicationScore > 70 ? prev.issues + 1 : prev.issues
+                }));
+
                 setFormData({
                     nameEnglish: '',
                     relativeName: '',
@@ -90,8 +113,12 @@ export default function BLODashboard() {
                     district: '',
                     state: '',
                     pin: '',
-                    disability: ''
+                    disability: '',
+                    photo: null
                 });
+                // Reset file input manually
+                const photoInput = document.getElementById('photo');
+                if (photoInput) photoInput.value = '';
             } else {
                 alert("Submission failed, please try again.");
             }
@@ -121,6 +148,57 @@ export default function BLODashboard() {
                         </button>
                     </div>
                 </div>
+
+                {/* Submission Result Feedback */}
+                {lastSubmission && (
+                    <div className="alert-card"
+                        style={{
+                            marginBottom: '2rem',
+                            padding: '2rem',
+                            borderRadius: '16px',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            background: lastSubmission.duplicationScore > 70
+                                ? 'linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%)'
+                                : 'linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%)',
+                            border: `1px solid ${lastSubmission.duplicationScore > 70 ? '#feb2b2' : '#9ae6b4'}`,
+                            boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
+                            animation: 'slideDown 0.5s ease-out'
+                        }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                            <div style={{
+                                width: '60px',
+                                height: '60px',
+                                borderRadius: '50%',
+                                backgroundColor: lastSubmission.duplicationScore > 70 ? '#f56565' : '#48bb78',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: 'white',
+                                fontSize: '1.5rem'
+                            }}>
+                                <i className={`fas ${lastSubmission.duplicationScore > 70 ? 'fa-exclamation-triangle' : 'fa-check-circle'}`}></i>
+                            </div>
+                            <div>
+                                <h3 style={{ margin: 0, color: lastSubmission.duplicationScore > 70 ? '#9b2c2c' : '#22543d', fontSize: '1.4rem' }}>
+                                    {lastSubmission.duplicationScore > 70 ? 'High Duplication Detected' : 'Application Verified'}
+                                </h3>
+                                <p style={{ margin: '0.3rem 0 0', color: '#4a5568', fontWeight: '500' }}>
+                                    Application ID: <span style={{ fontFamily: 'monospace', color: '#2d3748' }}>#{lastSubmission.id}</span>
+                                </p>
+                            </div>
+                        </div>
+                        <div style={{ textAlign: 'center', minWidth: '150px', borderLeft: '1px solid rgba(0,0,0,0.1)', paddingLeft: '2rem' }}>
+                            <p style={{ margin: 0, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1px', color: '#718096', fontWeight: '600' }}>
+                                Confidence
+                            </p>
+                            <h2 style={{ margin: 0, fontSize: '2.5rem', color: lastSubmission.duplicationScore > 70 ? '#c53030' : '#2f855a' }}>
+                                {lastSubmission.duplicationScore ?? 0}%
+                            </h2>
+                        </div>
+                    </div>
+                )}
 
                 {/* Stats */}
                 <div className="stats-grid" role="status" aria-label="Dashboard Statistics">
@@ -156,7 +234,17 @@ export default function BLODashboard() {
                                     id="photo"
                                     accept="image/*"
                                     style={{ width: '100%' }}
+                                    onChange={handleFileChange}
                                 />
+                                {formData.photo && (
+                                    <div style={{ marginTop: '0.5rem', textAlign: 'center' }}>
+                                        <img
+                                            src={formData.photo}
+                                            alt="Preview"
+                                            style={{ maxWidth: '100px', borderRadius: '4px' }}
+                                        />
+                                    </div>
+                                )}
                             </div>
                         </div>
 

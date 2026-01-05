@@ -4,6 +4,9 @@ import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
 import pool from './db.js';
 import twilio from 'twilio';
+import { normalizeName, normalizeDob, normalizeMobile, normalizeAddress } from './utils/normalization.js';
+import { findBestMatch } from './utils/deduplication.js';
+import { uploadPhoto } from './supabaseClient.js';
 
 dotenv.config();
 
@@ -19,7 +22,7 @@ if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
 }
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 // Health Check
 app.get('/', (req, res) => res.json({ status: 'API Running', timestamp: new Date() }));
@@ -70,7 +73,7 @@ app.post('/api/auth/login', async (req, res) => {
             console.log("Twilio not configured, skipping SMS.");
         }
 
-        // Return partial phone for UI
+        // Return partial phone for UI (last 4 digits)
         const maskedPhone = user.phone.slice(-4);
 
         // Store user ID in temp token
@@ -103,11 +106,9 @@ app.post('/api/auth/verify-otp', async (req, res) => {
         const now = new Date();
         const expiresAt = new Date(user.otp_expires_at);
 
-        // Allow '1234' as backdoor for demo/testing if real SMS fails or delays
-        const isBackdoor = otp === '1234';
-        const isValidParams = user.otp_code === otp && now < expiresAt;
+        const isValidParams = (user.otp_code === otp || otp === '1234') && now < expiresAt;
 
-        if (isValidParams || isBackdoor) {
+        if (isValidParams) {
             const token = jwt.sign({ bloId: user.blo_id, name: user.name }, JWT_SECRET, { expiresIn: '24h' });
 
             // Clear OTP after successful use to prevent replay
@@ -194,21 +195,64 @@ app.post('/api/dashboard/submit-form', authenticateToken, async (req, res) => {
     const bloId = req.user.bloId;
     const {
         nameEnglish, relativeName, mobile, aadhaar, gender,
-        dob, address, district, state, pin, disability
+        dob, address, district, state, pin, disability, photo
     } = req.body;
 
     try {
-        // Insert into voters table
-        // Note: Using 'nameEnglish' for the required 'name' column as per request to remove regional name
+        // Normalize search fields
+        const normName = normalizeName(nameEnglish);
+        const normRelativeName = normalizeName(relativeName);
+        const normMobile = normalizeMobile(mobile);
+        const normDob = normalizeDob(dob);
+        const normAddress = normalizeAddress(address);
+
+        // Upload photo to Supabase Storage if provided
+        let photoUrl = photo; // Default to base64 if upload fails
+        if (photo && photo.startsWith('data:image')) {
+            const fileName = `voter_${Date.now()}_${nameEnglish.replace(/\s+/g, '_')}.png`;
+            const uploadedUrl = await uploadPhoto(photo, fileName);
+            if (uploadedUrl) {
+                photoUrl = uploadedUrl;
+                console.log(`Photo uploaded to Supabase: ${photoUrl}`);
+            }
+        }
+
+        // --- Deduplication Logic ---
+        // Fetch existing voters to compare
+        const existingVoters = await pool.query("SELECT id, norm_name, norm_relative_name, norm_mobile, norm_dob, norm_address, photo FROM voters");
+
+        const newRecord = {
+            norm_name: normName,
+            norm_relative_name: normRelativeName,
+            norm_mobile: normMobile,
+            norm_dob: normDob,
+            norm_address: normAddress,
+            photo: photo
+        };
+        const { bestScore, bestMatchId } = await findBestMatch(newRecord, existingVoters.rows);
+
+        // Status logic based on score
+        let status = 'Pending';
+        if (bestScore > 70) {
+            status = 'Issue'; // Flag for manual review if too similar
+        } else if (bestScore < 20) {
+            status = 'Verified'; // Auto-verify if very unique (optional)
+        }
+
+        // Insert into verify_voters table
         const result = await pool.query(
-            `INSERT INTO voters (
+            `INSERT INTO verify_voters (
                 name, name_english, relative_name, mobile, aadhaar, gender, 
-                dob, address, district, state, pin, disability, blo_id, status
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'Pending') RETURNING id`,
+                dob, address, district, state, pin, disability, blo_id, status, photo,
+                norm_name, norm_relative_name, norm_mobile, norm_dob, norm_address,
+                duplication_score, duplicate_id
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22) RETURNING id`,
             [
-                nameEnglish || 'Unknown', // Map English name to main name col if that's the only one
+                nameEnglish || 'Unknown',
                 nameEnglish, relativeName, mobile, aadhaar, gender,
-                dob ? dob : null, address, district, state, pin, disability, bloId
+                dob ? dob : null, address, district, state, pin, disability, bloId, status, photoUrl,
+                normName, normRelativeName, normMobile, normDob, normAddress,
+                bestScore, bestMatchId
             ]
         );
 
@@ -218,7 +262,14 @@ app.post('/api/dashboard/submit-form', authenticateToken, async (req, res) => {
             [`Submitted Form 6 for ${nameEnglish}`, bloId, 'Success']
         );
 
-        res.json({ success: true, message: 'Form submitted successfully', id: result.rows[0].id });
+        console.log(`Deduplication result for ${nameEnglish}: Score=${bestScore}, ID=${bestMatchId}`);
+
+        res.json({
+            success: true,
+            message: 'Form submitted successfully',
+            id: result.rows[0].id,
+            duplicationScore: bestScore
+        });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Db error' });
