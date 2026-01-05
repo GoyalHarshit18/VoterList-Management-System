@@ -225,6 +225,12 @@ app.post('/api/dashboard/submit-form', authenticateToken, async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
     console.log(`Server running on port ${PORT}`);
+    try {
+        await pool.query('SELECT NOW()');
+        console.log('Database connected successfully');
+    } catch (err) {
+        console.error('Database connection failed:', err);
+    }
 });
