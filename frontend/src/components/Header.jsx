@@ -22,7 +22,7 @@ export default function Header() {
             <nav className="navbar">
                 <div className="logo-container">
                     <img
-                        src="/src/assets/eci-logo.png"
+                        src="../src/assets/eci-logo.png"
                         alt={t.siteSubtitle}
                         className="eci-logo"
                     />
