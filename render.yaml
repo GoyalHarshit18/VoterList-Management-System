@@ -20,6 +20,10 @@ services:
         sync: false
       - key: TWILIO_PHONE_NUMBER
         sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
 
   # Frontend Service
   - type: web
