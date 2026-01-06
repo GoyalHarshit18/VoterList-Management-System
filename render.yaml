@@ -26,7 +26,6 @@ services:
     name: hack4delhi-frontend
     env: static
     rootDir: frontend
-    plan: free
     buildCommand: npm install && npm run build
     staticPublishPath: dist
     # SPA Routing Rule: Redirect all 404s to index.html so React Router handles them
