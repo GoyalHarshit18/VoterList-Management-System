@@ -4,7 +4,7 @@ import { useLanguage } from "../i18n/LanguageContext";
 import { useAuth } from "../auth/AuthContext";
 import { STRINGS } from "../i18n/strings";
 
-let BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+let BASE_URL = import.meta.env.VITE_API_URL || "https://hack4delhi-backend-grlo.onrender.com";
 if (BASE_URL && !BASE_URL.startsWith('http')) {
     BASE_URL = `https://${BASE_URL}`;
 }

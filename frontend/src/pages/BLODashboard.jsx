@@ -4,7 +4,7 @@ import { useAuth } from "../auth/AuthContext";
 import { useLanguage } from "../i18n/LanguageContext";
 import { STRINGS } from "../i18n/strings";
 
-let BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+let BASE_URL = import.meta.env.VITE_API_URL || "https://hack4delhi-backend-grlo.onrender.com";
 if (BASE_URL && !BASE_URL.startsWith('http')) {
     BASE_URL = `https://${BASE_URL}`;
 }
@@ -196,6 +196,10 @@ export default function BLODashboard() {
                             <h2 style={{ margin: 0, fontSize: '2.5rem', color: lastSubmission.duplicationScore > 70 ? '#c53030' : '#2f855a' }}>
                                 {lastSubmission.duplicationScore ?? 0}%
                             </h2>
+                            <div style={{ fontSize: '0.75rem', marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                <span style={{ color: '#718096' }}>Rules: <strong>{lastSubmission.ruleScore ?? 0}%</strong></span>
+                                <span style={{ color: '#718096' }}>Photo: <strong>{lastSubmission.photoScore ?? 0}%</strong></span>
+                            </div>
                         </div>
                     </div>
                 )}
