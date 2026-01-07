@@ -9,11 +9,11 @@ const initDb = async () => {
         await client.query(`
             CREATE TABLE IF NOT EXISTS blo_users (
                 id SERIAL PRIMARY KEY,
-                blo_id VARCHAR(50) UNIQUE NOT NULL,
-                password VARCHAR(100) NOT NULL,
-                name VARCHAR(100) NOT NULL,
-                phone VARCHAR(20) NOT NULL,
-                otp_code VARCHAR(10),
+                blo_id TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                name TEXT NOT NULL,
+                phone TEXT NOT NULL,
+                otp_code TEXT,
                 otp_expires_at TIMESTAMP
             );
         `);
@@ -21,28 +21,30 @@ const initDb = async () => {
         // Helper Schema for Voter tables
         const voterSchemaFields = `
                 id SERIAL PRIMARY KEY,
-                name VARCHAR(100) NOT NULL,
-                name_english VARCHAR(100),
-                relative_name VARCHAR(100),
-                mobile VARCHAR(20) NOT NULL,
-                aadhaar VARCHAR(20),
-                gender VARCHAR(20),
+                name TEXT NOT NULL,
+                name_english TEXT,
+                relative_name TEXT,
+                mobile TEXT NOT NULL,
+                aadhaar TEXT,
+                gender TEXT,
                 dob DATE,
                 address TEXT,
-                district VARCHAR(100),
-                state VARCHAR(100),
-                pin VARCHAR(10),
-                disability VARCHAR(100),
-                blo_id VARCHAR(50) REFERENCES blo_users(blo_id),
-                status VARCHAR(20) DEFAULT 'Pending',
+                district TEXT,
+                state TEXT,
+                pin TEXT,
+                disability TEXT,
+                blo_id TEXT REFERENCES blo_users(blo_id),
+                status TEXT DEFAULT 'Pending',
                 is_verified BOOLEAN DEFAULT FALSE,
                 submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 photo TEXT,
                 norm_name TEXT,
                 norm_relative_name TEXT,
-                norm_mobile VARCHAR(20),
-                norm_dob VARCHAR(20),
-                norm_address TEXT
+                norm_mobile TEXT,
+                norm_dob TEXT,
+                norm_address TEXT,
+                duplication_score DOUBLE PRECISION,
+                duplicate_id INTEGER
         `;
 
         // 2. Voters Table (Verified List)
@@ -56,9 +58,9 @@ const initDb = async () => {
             CREATE TABLE IF NOT EXISTS audit_logs (
                 id SERIAL PRIMARY KEY,
                 date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                action VARCHAR(100) NOT NULL,
-                blo_id VARCHAR(50),
-                status VARCHAR(50)
+                action TEXT NOT NULL,
+                blo_id TEXT,
+                status TEXT
             );
         `);
 
