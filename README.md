@@ -1,4 +1,5 @@
 # Deployed Link: https://hack4delhi-frontend-7xm4.onrender.com
+(Sample BLO login credentials: ID - DEL123, Password - pass123, sample otp - 1234)
 
 # 🗳️ Voter List Management System
 
