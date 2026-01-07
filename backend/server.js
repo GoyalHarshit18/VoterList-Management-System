@@ -218,8 +218,12 @@ app.post('/api/dashboard/submit-form', authenticateToken, async (req, res) => {
         }
 
         // --- Deduplication Logic ---
-        // Fetch existing voters to compare
-        const existingVoters = await pool.query("SELECT id, norm_name, norm_relative_name, norm_mobile, norm_dob, norm_address, photo FROM voters");
+        // Fetch existing voters AND currently pending applications to compare
+        const existingVoters = await pool.query(`
+            SELECT id, norm_name, norm_relative_name, norm_mobile, norm_dob, norm_address, photo FROM voters
+            UNION ALL
+            SELECT id, norm_name, norm_relative_name, norm_mobile, norm_dob, norm_address, photo FROM verify_voters
+        `);
 
         const newRecord = {
             norm_name: normName,
@@ -227,9 +231,9 @@ app.post('/api/dashboard/submit-form', authenticateToken, async (req, res) => {
             norm_mobile: normMobile,
             norm_dob: normDob,
             norm_address: normAddress,
-            photo: photo
+            photo: photoUrl || photo // Use the Supabase URL if upload succeeded, else fall back to base64
         };
-        const { bestScore, bestMatchId } = await findBestMatch(newRecord, existingVoters.rows);
+        const { bestScore, bestMatchId, photoScore, ruleScore } = await findBestMatch(newRecord, existingVoters.rows);
 
         // Status logic based on score
         let status = 'Pending';
@@ -268,7 +272,9 @@ app.post('/api/dashboard/submit-form', authenticateToken, async (req, res) => {
             success: true,
             message: 'Form submitted successfully',
             id: result.rows[0].id,
-            duplicationScore: bestScore
+            duplicationScore: bestScore,
+            photoScore: photoScore,
+            ruleScore: ruleScore
         });
     } catch (err) {
         console.error(err);
