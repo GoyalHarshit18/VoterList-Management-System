@@ -16,14 +16,9 @@ if (dns.setDefaultResultOrder) {
     dns.setDefaultResultOrder('ipv4first');
 }
 
-// Support SSL for Production, Render, and Supabase
-const needsSSL = process.env.NODE_ENV === 'production' ||
-    process.env.DATABASE_URL?.includes('render') ||
-    process.env.DATABASE_URL?.includes('supabase');
-
 const pool = new pg.Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: needsSSL ? { rejectUnauthorized: false } : false
+    ssl: { rejectUnauthorized: false } // Always use SSL for cloud DBs (Supabase/Render)
 });
 
 pool.on('error', (err) => {
